@@ -1,4 +1,4 @@
-package fr.univ_rouen.m2gil_uefullstack.exceptions;
+package fr.univ_rouen.categorymanagement.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

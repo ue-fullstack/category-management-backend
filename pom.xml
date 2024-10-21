@@ -40,6 +40,15 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<!--        Pour Docker en local, on décommente-->
+
+		        <dependency>
+		            <groupId>org.springframework.boot</groupId>
+		            <artifactId>spring-boot-docker-compose</artifactId>
+		            <scope>runtime</scope>
+		            <optional>true</optional>
+		        </dependency>
+
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -55,7 +64,6 @@
 			<artifactId>spring-boot-starter-tomcat</artifactId>
 			<scope>provided</scope>
 		</dependency>
-
 		<!-- Swagger (pour la documentation API) -->
 		<dependency>
 			<groupId>io.springfox</groupId>

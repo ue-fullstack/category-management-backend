@@ -1,4 +1,4 @@
-package fr.univ_rouen.m2gil_uefullstack;
+package fr.univ_rouen.categorymanagement;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

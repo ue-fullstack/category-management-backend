@@ -1,4 +1,4 @@
-package fr.univ_rouen.m2gil_uefullstack.Model;
+package fr.univ_rouen.categorymanagement.Model;
 
 import jakarta.persistence.*;
 import lombok.Data;

@@ -1,13 +1,13 @@
-package fr.univ_rouen.m2gil_uefullstack;
+package fr.univ_rouen.categorymanagement;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class M2gilUefullstackApplication {
+public class CategoryManagementApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(M2gilUefullstackApplication.class, args);
+		SpringApplication.run(CategoryManagementApplication.class, args);
 	}
 
 }

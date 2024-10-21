@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=databackcategorie'
+      - 'POSTGRES_PASSWORD=usercategorie'
+      - 'POSTGRES_USER=secretcategorie'
+    ports:
+      - '5435:5432'

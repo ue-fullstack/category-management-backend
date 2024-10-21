@@ -1,4 +1,4 @@
-package fr.univ_rouen.m2gil_uefullstack.dto;
+package fr.univ_rouen.categorymanagement.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;

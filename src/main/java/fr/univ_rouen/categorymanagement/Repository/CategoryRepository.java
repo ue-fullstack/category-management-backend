@@ -1,6 +1,6 @@
-package fr.univ_rouen.m2gil_uefullstack.Repository;
+package fr.univ_rouen.categorymanagement.Repository;
 
-import fr.univ_rouen.m2gil_uefullstack.Model.Category;
+import fr.univ_rouen.categorymanagement.Model.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
