@@ -11,7 +11,7 @@
 	<groupId>fr.univ-rouen</groupId>
 	<artifactId>category-management-backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 	<name>category-management-backend</name>
 	<description>Gestion des catégories</description>
 	<url/>
@@ -39,16 +39,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
-		<!--        Pour Docker en local, on décommente-->
-
-		        <dependency>
-		            <groupId>org.springframework.boot</groupId>
-		            <artifactId>spring-boot-docker-compose</artifactId>
-		            <scope>runtime</scope>
-		            <optional>true</optional>
-		        </dependency>
-
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: category-management-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - backend-network
+
+  db:
+    image: 'postgres:latest'
+    container_name: postgres-db
+    environment:
+      - 'POSTGRES_DB=dbcategorie'
+      - 'POSTGRES_USER=usercategorie'
+      - 'POSTGRES_PASSWORD=secretcategorie'
+    ports:
+      - "5435:5432"
+    networks:
+      - backend-network
+
+networks:
+  backend-network:

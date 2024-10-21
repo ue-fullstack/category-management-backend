@@ -8,8 +8,8 @@ Base de données PostgreSQL
 ### Démarrage de l'application
 * L'application s'execute avec la version 17 de java
 * Pour démarrer l'application avec la base de données PostgresSql sur le Docker:
-    * Taper une des commandes suivantes
+    * Taper la commande suivante:
 
 ```
-    mvn spring-boot:run
+    docker-compose up --build
 ```
