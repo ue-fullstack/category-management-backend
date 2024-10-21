@@ -11,6 +11,6 @@ Base de données PostgreSQL
 * Pour démarrer l'application avec la base de données PostgresSql sur le Docker:
     * Taper une des commandes suivantes
 
-
-    mvn spring-boot:run 
-    sudo mvn spring-boot:run  # si nécessaire
+```
+    mvn spring-boot:run
+```
