@@ -1,5 +1,4 @@
 # category-management-backend
-## Launch the project
 
 Le nom de l'application est défini comme category-management-backend.
 Base de données PostgreSQL
