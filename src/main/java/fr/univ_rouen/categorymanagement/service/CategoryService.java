@@ -28,7 +28,7 @@ public class CategoryService {
         return categoryRepository.findAll(pageable);
     }
 
-    // Lister les catégories racines avec pagination
+    // Récupérer les catégories racines avec pagination
     public Page<Category> getRootCategories(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return categoryRepository.findByParentIsNull(pageable);
@@ -36,7 +36,22 @@ public class CategoryService {
 
     // Récupérer une catégorie par ID
     public Category getCategoryById(Long id) {
-        return categoryRepository.findById(id).orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
+    }
+
+    // Modifier une catégorie existante
+    public Category updateCategory(Long id, Category categoryDetails) {
+        Category category = getCategoryById(id);
+
+        if (categoryDetails.getParent() != null && categoryDetails.getParent().getId().equals(id)) {
+            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
+        }
+
+        category.setName(categoryDetails.getName());
+        category.setParent(categoryDetails.getParent());
+
+        return categoryRepository.save(category);
     }
 
     // Supprimer une catégorie
