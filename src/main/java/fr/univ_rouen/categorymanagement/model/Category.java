@@ -1,6 +1,8 @@
 package fr.univ_rouen.categorymanagement.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,9 +21,11 @@ public class Category {
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
+    @JsonBackReference // Empêche la sérialisation récursive du parent
     private Category parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @JsonManagedReference // Sérialise seulement la partie "enfants"
     private List<Category> children;
 
     @Column(name = "created_at", updatable = false)
