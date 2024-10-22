@@ -15,7 +15,10 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copier l'artefact .jar depuis l'étape de build
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/*.jar /app/app.jar
+
+# Copier tous les fichiers de ressources nécessaires dans l'image finale
+COPY --from=build /app/src/main/resources /app/src/main/resources
 
 # Exposer le port sur lequel votre application va tourner (par défaut 8080 pour Spring Boot)
 EXPOSE 8080
