@@ -8,5 +8,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
+    //Afficher mes categorie parent
     Page<Category> findByParentIsNull(Pageable pageable);
+
+    // Recherche des catégories par nom contenant un mot clé
+    Page<Category> findByNameContainingIgnoreCase(String name, Pageable pageable);
 }

@@ -59,4 +59,12 @@ public class CategoryService {
         Category category = getCategoryById(id);
         categoryRepository.delete(category);
     }
+
+
+    // Recherche des catégories par nom avec pagination
+    public Page<Category> searchCategoriesByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findByNameContainingIgnoreCase(name, pageable);
+    }
+
 }

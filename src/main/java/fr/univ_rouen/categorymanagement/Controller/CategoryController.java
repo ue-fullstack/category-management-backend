@@ -23,7 +23,7 @@ public class CategoryController {
             return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);  // Message d'erreur générique
+                    .body(null);
         }
     }
 
@@ -70,6 +70,7 @@ public class CategoryController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Catégorie avec l'ID " + id + " non trouvée.");
         }
+
     }
 
     // Récupérer les catégories racines avec pagination
@@ -80,4 +81,15 @@ public class CategoryController {
         Page<Category> categories = categoryService.getRootCategories(page, size);
         return ResponseEntity.ok(categories);
     }
+
+    // Recherche de catégories par nom avec pagination
+    @GetMapping("/search")
+    public ResponseEntity<Page<Category>> searchCategories(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Category> categories = categoryService.searchCategoriesByName(name, page, size);
+        return ResponseEntity.ok(categories);
+    }
+
 }
