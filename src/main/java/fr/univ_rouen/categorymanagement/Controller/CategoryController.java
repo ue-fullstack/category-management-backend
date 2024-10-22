@@ -1,11 +1,18 @@
 package fr.univ_rouen.categorymanagement.Controller;
 
+import fr.univ_rouen.categorymanagement.model.Category;
+import fr.univ_rouen.categorymanagement.service.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
 
+    @Autowired
+    private CategoryService categoryService;
     // Créer une nouvelle catégorie
     @PostMapping
     public ResponseEntity<Category> createCategory(@RequestBody Category category) {
