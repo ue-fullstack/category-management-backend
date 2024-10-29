@@ -39,4 +39,9 @@ public class Category {
     public boolean isRootCategory() {
         return this.parent == null;
     }
+
+    // Méthode pour retourner seulement l'ID du parent
+    public Long getParentId() {
+        return parent != null ? parent.getId() : null;
+    }
 }
