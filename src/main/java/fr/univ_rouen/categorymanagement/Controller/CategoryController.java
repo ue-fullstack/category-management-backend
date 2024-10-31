@@ -1,12 +1,14 @@
 package fr.univ_rouen.categorymanagement.Controller;
 
+import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
 import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -15,80 +17,58 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
-    // Créer une nouvelle catégorie
     @PostMapping
-    public ResponseEntity<Category> createCategory(@RequestBody Category category) {
-        try {
-            Category createdCategory = categoryService.createCategory(category);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);
-        }
+    public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
+        CategoryDTO createdCategory = categoryService.createCategory(categoryDTO);
+        return ResponseEntity.ok(createdCategory);
     }
 
-    // Lister toutes les catégories avec pagination
-    @GetMapping
-    public ResponseEntity<Page<Category>> getAllCategories(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<Category> categories = categoryService.getAllCategories(page, size);
-        return ResponseEntity.ok(categories);
-    }
-
-    // Récupérer une catégorie par ID
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getCategoryById(@PathVariable Long id) {
-        try {
-            Category category = categoryService.getCategoryById(id);
-            return ResponseEntity.ok(category);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Catégorie avec l'ID " + id + " non trouvée.");
-        }
-    }
-
-    // Modifier une catégorie par ID
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id, @RequestBody Category categoryDetails) {
-        try {
-            Category updatedCategory = categoryService.updateCategory(id, categoryDetails);
-            return ResponseEntity.ok(updatedCategory);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Catégorie avec l'ID " + id + " non trouvée ou erreur lors de la mise à jour.");
-        }
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryDTO categoryDTO) {
+        CategoryDTO updatedCategory = categoryService.updateCategory(id, categoryDTO);
+        return ResponseEntity.ok(updatedCategory);
     }
 
-    // Supprimer une catégorie par ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
-        try {
-            categoryService.deleteCategory(id);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Catégorie avec l'ID " + id + " non trouvée.");
-        }
-
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        categoryService.deleteCategory(id);
+        return ResponseEntity.noContent().build();
     }
 
-    // Récupérer les catégories racines avec pagination
-    @GetMapping("/roots")
-    public ResponseEntity<Page<Category>> getRootCategories(
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
+        CategoryDTO category = categoryService.getCategoryById(id);
+        return ResponseEntity.ok(category);
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<CategoryDTO>> getAllCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<Category> categories = categoryService.getRootCategories(page, size);
+        Page<CategoryDTO> categories = categoryService.getAllCategories(page, size);
         return ResponseEntity.ok(categories);
     }
 
-    // Recherche de catégories par nom avec pagination
+    @PostMapping("/{id}/children")
+    public ResponseEntity<CategoryDTO> addChildrenToCategory(@PathVariable Long id, @RequestBody List<CategoryDTO> children) {
+        CategoryDTO updatedCategory = categoryService.addChildrenToCategory(id, children);
+        return ResponseEntity.ok(updatedCategory);
+    }
+
+    @GetMapping("/roots")
+    public ResponseEntity<Page<CategoryDTO>> getRootCategories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<CategoryDTO> rootCategories = categoryService.getRootCategories(page, size);
+        return ResponseEntity.ok(rootCategories);
+    }
+
     @GetMapping("/search")
-    public ResponseEntity<Page<Category>> searchCategories(
+    public ResponseEntity<Page<CategoryDTO>> searchCategories(
             @RequestParam String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<Category> categories = categoryService.searchCategoriesByName(name, page, size);
+        Page<CategoryDTO> categories = categoryService.searchCategoriesByName(name, page, size);
         return ResponseEntity.ok(categories);
     }
 

@@ -1,12 +1,19 @@
 package fr.univ_rouen.categorymanagement.service;
 
+import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
 import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.repository.CategoryRepository;
+import fr.univ_rouen.categorymanagement.util.CategoryMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoryService {
@@ -14,57 +21,80 @@ public class CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    // Créer une nouvelle catégorie
-    public Category createCategory(Category category) {
-        if (category.getParent() != null && category.getParent().getId().equals(category.getId())) {
-            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent");
+    @Autowired
+    private CategoryMapper categoryMapper;
+
+    @Transactional
+    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+        Category category = categoryMapper.toEntity(categoryDTO);
+        if (categoryDTO.getParentId() != null) {
+            Category parent = categoryRepository.findById(categoryDTO.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent category not found"));
+            category.setParent(parent);
         }
-        return categoryRepository.save(category);
+        Category savedCategory = categoryRepository.save(category);
+        return categoryMapper.toDTO(savedCategory);
     }
 
-    // Lister toutes les catégories avec pagination
-    public Page<Category> getAllCategories(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return categoryRepository.findAll(pageable);
-    }
-
-    // Récupérer les catégories racines avec pagination
-    public Page<Category> getRootCategories(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return categoryRepository.findByParentIsNull(pageable);
-    }
-
-    // Récupérer une catégorie par ID
-    public Category getCategoryById(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
-    }
-
-    // Modifier une catégorie existante
-    public Category updateCategory(Long id, Category categoryDetails) {
-        Category category = getCategoryById(id);
-
-        if (categoryDetails.getParent() != null && categoryDetails.getParent().getId().equals(id)) {
-            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
+    @Transactional
+    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+        category.setName(categoryDTO.getName());
+        if (categoryDTO.getParentId() != null) {
+            Category parent = categoryRepository.findById(categoryDTO.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent category not found"));
+            category.setParent(parent);
+        } else {
+            category.setParent(null);
         }
-
-        category.setName(categoryDetails.getName());
-        category.setParent(categoryDetails.getParent());
-
-        return categoryRepository.save(category);
+        Category updatedCategory = categoryRepository.save(category);
+        return categoryMapper.toDTO(updatedCategory);
     }
 
-    // Supprimer une catégorie
+    @Transactional
     public void deleteCategory(Long id) {
-        Category category = getCategoryById(id);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
         categoryRepository.delete(category);
     }
 
-
-    // Recherche des catégories par nom avec pagination
-    public Page<Category> searchCategoriesByName(String name, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return categoryRepository.findByNameContainingIgnoreCase(name, pageable);
+    public CategoryDTO getCategoryById(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée avec l'ID : " + id));
+        return categoryMapper.toDTO(category);
     }
 
+    public Page<CategoryDTO> getAllCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Category> categoryPage = categoryRepository.findAll(pageable);
+        return categoryPage.map(categoryMapper::toDTO);
+    }
+
+    @Transactional
+    public CategoryDTO addChildrenToCategory(Long parentId, List<CategoryDTO> childrenDTOs) {
+        Category parent = categoryRepository.findById(parentId)
+                .orElseThrow(() -> new RuntimeException("Catégorie parent non trouvée avec l'ID : " + parentId));
+
+        for (CategoryDTO childDTO : childrenDTOs) {
+            Category child = categoryMapper.toEntity(childDTO);
+            parent.addChild(child);
+        }
+
+        Category savedParent = categoryRepository.save(parent);
+        return categoryMapper.toDTO(savedParent);
+    }
+
+    public Page<CategoryDTO> getRootCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Category> categoryPage = categoryRepository.findByParentIsNull(pageable);
+        return categoryPage.map(categoryMapper::toDTO);
+    }
+
+    public Page<CategoryDTO> searchCategoriesByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Category> categoryPage = categoryRepository.findByNameContainingIgnoreCase(name, pageable);
+        return categoryPage.map(categoryMapper::toDTO);
+    }
 }
+

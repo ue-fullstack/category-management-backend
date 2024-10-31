@@ -4,13 +4,27 @@ import fr.univ_rouen.categorymanagement.model.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    //Afficher mes categorie parent
+
+    // Trouver les catégories racines (sans parent)
     Page<Category> findByParentIsNull(Pageable pageable);
 
-    // Recherche des catégories par nom contenant un mot clé
+    // Recherche de catégories par nom (insensible à la casse)
     Page<Category> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    // Vérifier si une catégorie est enfant d'elle-même
+    @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Category c WHERE c.id = :id AND c.parent.id = :id")
+    boolean isCategoryChildOfItself(Long id);
+
+    // Trouver les enfants directs d'une catégorie
+    List<Category> findByParentId(Long parentId);
+
+    // Vérifier si une catégorie a des enfants
+    boolean existsByParentId(Long parentId);
 }
