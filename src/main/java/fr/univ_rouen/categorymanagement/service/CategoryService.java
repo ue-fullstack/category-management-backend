@@ -1,6 +1,7 @@
 package fr.univ_rouen.categorymanagement.service;
 
 import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
+import fr.univ_rouen.categorymanagement.exceptions.ResourceNotFoundException;
 import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.repository.CategoryRepository;
 import fr.univ_rouen.categorymanagement.util.CategoryMapper;
@@ -35,10 +36,13 @@ public class CategoryService {
     }
 
     @Transactional
-    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
+    public Category updateCategory(Long id, CategoryDTO categoryDTO) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
+
         category.setName(categoryDTO.getName());
+
+        // Mise à jour du parent
         if (categoryDTO.getParentId() != null) {
             Category parent = categoryRepository.findById(categoryDTO.getParentId())
                     .orElseThrow(() -> new RuntimeException("Parent category not found"));
@@ -46,9 +50,21 @@ public class CategoryService {
         } else {
             category.setParent(null);
         }
-        Category updatedCategory = categoryRepository.save(category);
-        return categoryMapper.toDTO(updatedCategory);
+
+        // Mise à jour des enfants
+        category.getChildren().clear();
+        if (categoryDTO.getChildren() != null) {
+            for (CategoryDTO childDTO : categoryDTO.getChildren()) {
+                Category child = categoryRepository.findById(childDTO.getId())
+                        .orElseThrow(() -> new RuntimeException("Child category not found"));
+                category.addChild(child);
+            }
+        }
+
+
+        return categoryRepository.save(category);
     }
+
 
     @Transactional
     public void deleteCategory(Long id) {
@@ -94,5 +110,13 @@ public class CategoryService {
         Page<Category> categoryPage = categoryRepository.findByNameContainingIgnoreCase(name, pageable);
         return categoryPage.map(categoryMapper::toDTO);
     }
+
+    public Page<CategoryDTO> getUnselectedCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Category> categoryPage = categoryRepository.findBySelectedFalse(pageable);
+
+        return categoryPage.map(categoryMapper::toDTO);
+    }
+
 }
 

@@ -3,8 +3,10 @@ package fr.univ_rouen.categorymanagement.Controller;
 import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
 import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.service.CategoryService;
+import fr.univ_rouen.categorymanagement.util.CategoryMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,8 @@ public class CategoryController {
 
     @Autowired
     private CategoryService categoryService;
+    @Autowired
+    private CategoryMapper categoryMapper;
 
     @PostMapping
     public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
@@ -25,8 +29,13 @@ public class CategoryController {
 
     @PutMapping("/{id}")
     public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO updatedCategory = categoryService.updateCategory(id, categoryDTO);
-        return ResponseEntity.ok(updatedCategory);
+        try {
+            Category updatedCategory = categoryService.updateCategory(id, categoryDTO);
+            CategoryDTO updatedCategoryDTO = categoryMapper.toDTO(updatedCategory);
+            return ResponseEntity.ok(updatedCategoryDTO);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -35,7 +44,7 @@ public class CategoryController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
         CategoryDTO category = categoryService.getCategoryById(id);
         return ResponseEntity.ok(category);
@@ -65,11 +74,21 @@ public class CategoryController {
 
     @GetMapping("/search")
     public ResponseEntity<Page<CategoryDTO>> searchCategories(
-            @RequestParam String name,
+            @RequestParam(required = false) String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Page<CategoryDTO> categories = categoryService.searchCategoriesByName(name, page, size);
         return ResponseEntity.ok(categories);
     }
+
+    @GetMapping("/unselected")
+    public ResponseEntity<Page<CategoryDTO>> getUnselectedCategories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<CategoryDTO> categories = categoryService.getUnselectedCategories(page, size);
+        return ResponseEntity.ok(categories);
+    }
+
+
 
 }

@@ -27,4 +27,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     // Vérifier si une catégorie a des enfants
     boolean existsByParentId(Long parentId);
+
+    // recuperer touts les enfants qui n'ont pas de parent
+    Page<Category> findBySelectedFalse(Pageable pageable);
 }

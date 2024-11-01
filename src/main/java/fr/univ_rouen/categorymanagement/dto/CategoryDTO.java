@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class CategoryDTO {
+
     private Long id;
     private String name;
     private Long parentId;
@@ -14,4 +15,6 @@ public class CategoryDTO {
     private LocalDateTime createdAt;
     private boolean selected;
     private boolean root;
+
+    public CategoryDTO() {}
 }
