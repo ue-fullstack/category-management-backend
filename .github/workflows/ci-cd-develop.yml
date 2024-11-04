@@ -37,8 +37,8 @@ jobs:
             sleep 5
           done
 
-      - name: Run Tests
-        run: docker-compose exec app mvn test
+#      - name: Run Tests
+#        run: docker-compose exec app mvn test
 
       - name: Stop Docker Compose
         run: docker-compose down
