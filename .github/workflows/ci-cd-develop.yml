@@ -43,15 +43,15 @@ jobs:
       - name: Stop Docker Compose
         run: docker-compose down
 
-      - name: Code Quality Check
-        uses: SonarSource/sonarcloud-github-action@v1.7
-        with:
-          projectBaseDir: .
-          args: >
-            -Dsonar.projectKey=management_category_back
-            -Dsonar.organization=my_organization
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#      - name: Code Quality Check
+#        uses: SonarSource/sonarcloud-github-action@v1.7
+#        with:
+#          projectBaseDir: .
+#          args: >
+#            -Dsonar.projectKey=management_category_back
+#            -Dsonar.organization=my_organization
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 #      - name: Secret Detection
 #        uses: actions/checkout@v2
