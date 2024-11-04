@@ -50,6 +50,8 @@ jobs:
 #          args: >
 #            -Dsonar.projectKey=management_category_back
 #            -Dsonar.organization=my_organization
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
 #      - name: Secret Detection
 #        uses: actions/checkout@v2
