@@ -13,3 +13,9 @@ Base de données PostgreSQL
 ```
     docker-compose up --build
 ```
+
+### Documentation de l'api via swagger
+* Pour visualiser la documentation de l'api, utiliser le lien suivant:
+```
+    http://localhost:8080/swagger-ui/index.html
+```
