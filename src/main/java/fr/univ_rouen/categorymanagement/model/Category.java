@@ -16,13 +16,21 @@ import java.util.List;
 @Getter
 @Setter
 public class Category {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
     private String name;
+
+    @Column(nullable = false, unique = true)
+    private String code;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "image_url")
+    private String imageUrl;
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
@@ -42,16 +50,16 @@ public class Category {
     @Column(name = "is_selected")
     private boolean selected;
 
+    @Getter
+    @Column(name = "is_root")
+    private boolean root;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
-    public boolean isRoot() {
-        return !children.isEmpty();
-    }
-
-    public void setParent(Category parent) {  // Changé de CategoryDTO à Category
+    public void setParent(Category parent) {
         if (this.parent != null) {
             this.parent.getChildren().remove(this);
         }
@@ -61,17 +69,24 @@ public class Category {
             parent.getChildren().add(this);
             this.selected = true;
             parent.setSelected(false);
+            this.root = false;
+        } else {
+            this.root = true;
         }
     }
 
     public void addChild(Category child) {
         children.add(child);
         child.setParent(this);
+        this.root = true;
     }
 
     public void removeChild(Category child) {
         children.remove(child);
         child.setParent(null);
+        if (children.isEmpty()) {
+            this.root = false;
+        }
     }
 
     @JsonIgnore

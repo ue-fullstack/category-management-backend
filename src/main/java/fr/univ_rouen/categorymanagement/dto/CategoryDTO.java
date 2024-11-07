@@ -7,9 +7,11 @@ import java.util.List;
 
 @Data
 public class CategoryDTO {
-
     private Long id;
     private String name;
+    private String code;
+    private String description;
+    private String imageUrl;
     private Long parentId;
     private List<CategoryDTO> children;
     private LocalDateTime createdAt;

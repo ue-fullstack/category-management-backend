@@ -7,10 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
+
+    Page<Category> findByRootAndCreatedAtBetween(Boolean isRoot, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
+    Page<Category> findByRoot(boolean isRoot, Pageable pageable);
+    Page<Category> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     // Trouver les catégories racines (sans parent)
     Page<Category> findByParentIsNull(Pageable pageable);
@@ -30,4 +35,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     // recuperer touts les enfants qui n'ont pas de parent
     Page<Category> findBySelectedFalse(Pageable pageable);
+
+
 }

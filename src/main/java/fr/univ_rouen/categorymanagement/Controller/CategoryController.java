@@ -1,16 +1,16 @@
 package fr.univ_rouen.categorymanagement.Controller;
 
 import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
-import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.service.CategoryService;
-import fr.univ_rouen.categorymanagement.util.CategoryMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -18,24 +18,17 @@ public class CategoryController {
 
     @Autowired
     private CategoryService categoryService;
-    @Autowired
-    private CategoryMapper categoryMapper;
 
     @PostMapping
     public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
         CategoryDTO createdCategory = categoryService.createCategory(categoryDTO);
-        return ResponseEntity.ok(createdCategory);
+        return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryDTO categoryDTO) {
-        try {
-            Category updatedCategory = categoryService.updateCategory(id, categoryDTO);
-            CategoryDTO updatedCategoryDTO = categoryMapper.toDTO(updatedCategory);
-            return ResponseEntity.ok(updatedCategoryDTO);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+        CategoryDTO updatedCategory = categoryService.updateCategory(id, categoryDTO);
+        return ResponseEntity.ok(updatedCategory);
     }
 
     @DeleteMapping("/{id}")
@@ -44,51 +37,26 @@ public class CategoryController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id:\\d+}")
+    @GetMapping("/{id}")
     public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
         CategoryDTO category = categoryService.getCategoryById(id);
         return ResponseEntity.ok(category);
     }
 
-    @GetMapping
-    public ResponseEntity<Page<CategoryDTO>> getAllCategories(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<CategoryDTO> categories = categoryService.getAllCategories(page, size);
-        return ResponseEntity.ok(categories);
-    }
-
-    @PostMapping("/{id}/children")
-    public ResponseEntity<CategoryDTO> addChildrenToCategory(@PathVariable Long id, @RequestBody List<CategoryDTO> children) {
-        CategoryDTO updatedCategory = categoryService.addChildrenToCategory(id, children);
-        return ResponseEntity.ok(updatedCategory);
-    }
-
-    @GetMapping("/roots")
-    public ResponseEntity<Page<CategoryDTO>> getRootCategories(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<CategoryDTO> rootCategories = categoryService.getRootCategories(page, size);
-        return ResponseEntity.ok(rootCategories);
-    }
-
     @GetMapping("/search")
     public ResponseEntity<Page<CategoryDTO>> searchCategories(
-            @RequestParam(required = false) String name,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<CategoryDTO> categories = categoryService.searchCategoriesByName(name, page, size);
+            @RequestParam(required = false) Boolean isRoot,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            Pageable pageable) {
+        Page<CategoryDTO> categories = categoryService.searchCategories(isRoot, startDate, endDate, pageable);
         return ResponseEntity.ok(categories);
     }
 
-    @GetMapping("/unselected")
-    public ResponseEntity<Page<CategoryDTO>> getUnselectedCategories(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<CategoryDTO> categories = categoryService.getUnselectedCategories(page, size);
+    @GetMapping
+    public ResponseEntity<Page<CategoryDTO>> getAllCategories(Pageable pageable) {
+        Page<CategoryDTO> categories = categoryService.getAllCategories(pageable);
         return ResponseEntity.ok(categories);
     }
-
-
 
 }
