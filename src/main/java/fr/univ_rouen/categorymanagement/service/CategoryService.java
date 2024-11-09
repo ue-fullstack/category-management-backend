@@ -1,19 +1,19 @@
 package fr.univ_rouen.categorymanagement.service;
 
-import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
-import fr.univ_rouen.categorymanagement.exceptions.CategoryNotFoundException;
 import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.repository.CategoryRepository;
+import fr.univ_rouen.categorymanagement.specification.CategorySpecifications;
 import fr.univ_rouen.categorymanagement.util.CategoryCodeGenerator;
-import fr.univ_rouen.categorymanagement.util.CategoryMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+
 
 @Service
 public class CategoryService {
@@ -25,99 +25,130 @@ public class CategoryService {
     private CategoryRepository categoryRepository;
 
 
-    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
-        Category category = new Category();
-        category.setName(categoryDTO.getName());
+    // Créer une nouvelle catégorie
+    public Category createCategory(Category category) {
+        // Vérifie que l'ID du parent est défini et différent de celui de la catégorie
+        if (category.getParent() != null && category.getParent().getId().equals(category.getId())) {
+            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent");
+        }
+        if(category.getName() == null || category.getName().isEmpty()){
+            throw new IllegalArgumentException("Une catégorie doit obligatoirement avoir un nom");
+        }
         category.setCode(codeGenerator.generateCode());
-        category.setDescription(categoryDTO.getDescription());
-        category.setImageUrl(categoryDTO.getImageUrl());
-        category.setCreatedAt(LocalDateTime.now());
-        category.setRoot(categoryDTO.getParentId() == null);
-
-        if (categoryDTO.getParentId() != null) {
-            Category parent = categoryRepository.findById(categoryDTO.getParentId())
-                    .orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));
-            category.setParent(parent);
-        }
-
-        Category savedCategory = categoryRepository.save(category);
-        return convertToDTO(savedCategory);
+        return categoryRepository.save(category);
     }
 
-    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
+    // Lister toutes les catégories avec pagination
+    public Page<Category> getAllCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findAll(pageable);
+    }
 
-        category.setName(categoryDTO.getName());
-        category.setDescription(categoryDTO.getDescription());
-        category.setImageUrl(categoryDTO.getImageUrl());
+    // Récupérer les catégories racines avec pagination
+    public Page<Category> getRootCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findByParentIsNull(pageable);
+    }
 
-        if (categoryDTO.getParentId() != null && !categoryDTO.getParentId().equals(category.getParent().getId())) {
-            Category newParent = categoryRepository.findById(categoryDTO.getParentId())
-                    .orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));
+    // Récupérer une catégorie par ID
+    public Category getCategoryById(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
+    }
+
+    // Modifier une catégorie existante
+    public Category updateCategory(Long id, Category categoryDetails) {
+        Category category = getCategoryById(id);
+        if (categoryDetails.getParent() != null && categoryDetails.getParent().getId().equals(id)) {
+            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
+        }
+        // Mise à jour des champs non-null
+        if (categoryDetails.getName() != null) {
+            category.setName(categoryDetails.getName());
+        }
+        if (categoryDetails.getCode() != null) {
+            category.setCode(categoryDetails.getCode());
+        }
+        if (categoryDetails.getDescription() != null) {
+            category.setDescription(categoryDetails.getDescription());
+        }
+        if (categoryDetails.getImageUrl() != null) {
+            category.setImageUrl(categoryDetails.getImageUrl());
+        }
+
+        // Gestion du parent
+        if (categoryDetails.getParent() != null) {
+            Category newParent = getCategoryById(categoryDetails.getParent().getId());
             category.setParent(newParent);
-            category.setRoot(false);
-        } else if (categoryDTO.getParentId() == null && !category.isRoot()) {
+        } else {
             category.setParent(null);
-            category.setRoot(true);
         }
 
-        Category updatedCategory = categoryRepository.save(category);
-        return convertToDTO(updatedCategory);
+        category = categoryRepository.save(category);
+
+        // Récupérer la catégorie mise à jour depuis la base de données
+        return getCategoryById(category.getId());
     }
 
+    // Supprimer une catégorie
     public void deleteCategory(Long id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
+        Category category = getCategoryById(id);
         categoryRepository.delete(category);
     }
 
-    public Page<CategoryDTO> getAllCategories(Pageable pageable) {
-        return categoryRepository.findAll(pageable).map(this::convertToDTO);
+    // Recherche des catégories par nom avec pagination
+    public Page<Category> searchCategoriesByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
-    public CategoryDTO getCategoryById(Long id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
-        return convertToDTO(category);
-    }
 
-    public Page<CategoryDTO> searchCategories(Boolean isRoot, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        Page<Category> categories;
-
-        if (isRoot != null && startDate != null && endDate != null) {
-            categories = categoryRepository.findByRootAndCreatedAtBetween(isRoot, startDate, endDate, pageable);
-        } else if (isRoot != null) {
-            categories = categoryRepository.findByRoot(isRoot, pageable);
-        } else if (startDate != null && endDate != null) {
-            categories = categoryRepository.findByCreatedAtBetween(startDate, endDate, pageable);
-        } else {
-            categories = categoryRepository.findAll(pageable);
+    public Page<Category> searchCategories(Boolean isRoot,
+                                           LocalDateTime afterDate,
+                                           LocalDateTime beforeDate,
+                                           Boolean isParent,
+                                           String sortBy,
+                                           boolean ascending,
+                                           int page, int size) {
+        Specification<Category> spec = Specification.where(null);
+        // Pour les catégories root
+        if (isRoot != null && isRoot) {
+            spec = spec.and(CategorySpecifications.isRootCategory());
         }
-
-        return categories.map(this::convertToDTO);
-    }
-
-    private CategoryDTO convertToDTO(Category category) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(category.getId());
-        dto.setName(category.getName());
-        dto.setCode(category.getCode());
-        dto.setDescription(category.getDescription());
-        dto.setImageUrl(category.getImageUrl());
-        dto.setCreatedAt(category.getCreatedAt());
-        dto.setRoot(category.isRoot());
-
-        if (category.getParent() != null) {
-            dto.setParentId(category.getParent().getId());
+        // Pour les catégories créées avant la date
+        if (afterDate != null) {
+            spec = spec.and(CategorySpecifications.createdAfter(afterDate));
         }
-
-        List<CategoryDTO> children = category.getChildren().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        dto.setChildren(children);
-
-        return dto;
+        // Pour les catégories créées après la date
+        if (beforeDate != null) {
+            spec = spec.and(CategorySpecifications.createdBefore(beforeDate));
+        }
+        // Pour les catégories parent ou non parent
+        if (isParent != null) {
+            spec = isParent ? spec.and(CategorySpecifications.isParentCategory()) : spec.and(CategorySpecifications.isNotParentCategory());
+        }
+        Sort sort;
+        switch (sortBy) {
+            case "name":
+                sort = ascending ? Sort.by("name").ascending() : Sort.by("name").descending();
+                break;
+            case "createdAt":
+                sort = ascending ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+                break;
+            default:
+                sort = Sort.unsorted();
+        }
+        Pageable pageable = PageRequest.of(page, size).withSort(sort);
+        // Effectuer la recherche avec la spécification et la pagination
+        if ("childrenCount".equals(sortBy)) {
+            // Si on trie par childrenCount, utiliser la méthode avec tri par nombre d'enfants
+            if (ascending) {
+                return categoryRepository.findAllCategoriesSortedByChildrenCount(pageable);
+            } else {
+                return categoryRepository.findAllCategoriesSortedByChildrenCountDesc(pageable);
+            }
+        }
+        return categoryRepository.findAll(spec, pageable);
     }
 }
 
