@@ -22,6 +22,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSp
     // Recherche de catégories par nom (insensible à la casse)
     Page<Category> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
+    boolean existsByName(String name);
+    boolean existsByCode(String code);
+
+
     // Méthode de recherche avec tri par le nombre d'enfants
     @Query("SELECT c FROM Category c LEFT JOIN c.children children " +
             "GROUP BY c.id " +

@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,7 +21,7 @@ import java.util.List;
 public class CategoryService {
 
     @Autowired
-    private CategoryCodeGenerator codeGenerator;
+    private CategoryCodeGenerator categoryCodeGenerator;
 
     @Autowired
     private CategoryRepository categoryRepository;
@@ -28,16 +29,26 @@ public class CategoryService {
 
     // Créer une nouvelle catégorie
     public Category createCategory(Category category) {
-        // Vérifie que l'ID du parent est défini et différent de celui de la catégorie
+        // Vérifications existantes
         if (category.getParent() != null && category.getParent().getId().equals(category.getId())) {
             throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent");
         }
-        if(category.getName() == null || category.getName().isEmpty()){
+        if(category.getName() == null || category.getName().isEmpty()) {
             throw new IllegalArgumentException("Une catégorie doit obligatoirement avoir un nom");
         }
-        category.setCode(codeGenerator.generateCode());
+    
+        // Générer un code unique
+        String code = categoryCodeGenerator.generateCode(category.getName());
+        category.setCode(code);
+        // Vérifier si une catégorie avec le même nom existe déjà
+        if (categoryRepository.existsByName(category.getName())) {
+            throw new IllegalArgumentException("Une catégorie avec ce nom existe déjà");
+        }
+    
         return categoryRepository.save(category);
     }
+    
+    
 
     // Lister toutes les catégories avec pagination
     public Page<Category> getAllCategories(int page, int size) {
