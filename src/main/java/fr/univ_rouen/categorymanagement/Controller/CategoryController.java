@@ -26,7 +26,6 @@ import org.springframework.http.HttpHeaders;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
@@ -38,53 +37,51 @@ public class CategoryController {
 
     @Autowired
     private ImageService imageService;
+
     // Créer une nouvelle catégorie
     @PostMapping
-public ResponseEntity<?> createCategory(
-        @RequestParam("name") String name,
-        @RequestParam("description") String description,
-        @RequestParam(value = "parentId", required = false) Long parentId,
-        @RequestParam(value = "root", defaultValue = "false") boolean root,
-        @RequestParam(value = "image", required = false) MultipartFile image,
-        @RequestParam(value = "childrenIds", required = false) List<Long> childrenIds) {
-    try {
-        Category category = new Category();
-        category.setName(name);
-        category.setDescription(description);
+    public ResponseEntity<?> createCategory(
+            @RequestParam("name") String name,
+            @RequestParam("description") String description,
+            @RequestParam(value = "parentId", required = false) Long parentId,
+            @RequestParam(value = "root", defaultValue = "false") boolean root,
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "childrenIds", required = false) List<Long> childrenIds) {
+        try {
+            Category category = new Category();
+            category.setName(name);
+            category.setDescription(description);
 
-        if (parentId != null) {
-            Category parentCategory = categoryService.getCategoryById(parentId);
-            category.setParent(parentCategory);
+            if (parentId != null) {
+                Category parentCategory = categoryService.getCategoryById(parentId);
+                category.setParent(parentCategory);
+            }
+
+            if (image != null && !image.isEmpty()) {
+                String imageUrl = imageService.saveImage(image);
+                category.setImageUrl(imageUrl);
+            }
+
+            if (childrenIds != null && !childrenIds.isEmpty()) {
+                List<Category> childrenCategories = categoryService.getCategoriesByIds(childrenIds);
+                childrenCategories.forEach(category::addChild);
+            }
+
+            Category createdCategory = categoryService.createCategory(category);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
+
+        } catch (IllegalArgumentException e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST,
+                    e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Erreur lors de la création de la catégorie: " + e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = imageService.saveImage(image);
-            category.setImageUrl(imageUrl);
-        }
-
-        if (childrenIds != null && !childrenIds.isEmpty()) {
-            List<Category> childrenCategories = categoryService.getCategoriesByIds(childrenIds);
-            childrenCategories.forEach(category::addChild);
-        }
-
-        Category createdCategory = categoryService.createCategory(category);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
-
-    } catch (IllegalArgumentException e) {
-        ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            e.getMessage()
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    } catch (Exception e) {
-        ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "Erreur lors de la création de la catégorie: " + e.getMessage()
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-}
-
 
     // Lister toutes les catégories avec pagination
 
@@ -104,11 +101,10 @@ public ResponseEntity<?> createCategory(
             Category category = categoryService.getCategoryById(id);
             return ResponseEntity.ok(category);
         } catch (RuntimeException e) {
-             ErrorResponse errorResponse = new ErrorResponse(
+            ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.NOT_FOUND,
-                    "Catégorie avec l'ID " + id + " non trouvée."
-            );
-            return new  ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+                    "Catégorie avec l'ID " + id + " non trouvée.");
+            return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
     }
 
@@ -128,8 +124,7 @@ public ResponseEntity<?> createCategory(
             if (existingCategory == null) {
                 ErrorResponse errorResponse = new ErrorResponse(
                         HttpStatus.NOT_FOUND,
-                        "Catégorie avec l'ID " + id + " non trouvée."
-                );
+                        "Catégorie avec l'ID " + id + " non trouvée.");
                 return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
             }
 
@@ -138,11 +133,14 @@ public ResponseEntity<?> createCategory(
             categoryDetails.setId(id);
 
             // Mettre à jour les champs si fournis
-            if (name != null) categoryDetails.setName(name);
-            if (code != null) categoryDetails.setCode(code);
-            if (description != null) categoryDetails.setDescription(description);
+            if (name != null)
+                categoryDetails.setName(name);
+            if (code != null)
+                categoryDetails.setCode(code);
+            if (description != null)
+                categoryDetails.setDescription(description);
 
-             // Gérer le parent
+            // Gérer le parent
             if (parentId != null) {
                 Category parentCategory = categoryService.getCategoryById(parentId);
                 if (parentCategory == null) {
@@ -175,19 +173,15 @@ public ResponseEntity<?> createCategory(
         } catch (IllegalArgumentException e) {
             ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.BAD_REQUEST,
-                    "Erreur : " + e.getMessage()
-            );
+                    "Erreur : " + e.getMessage());
             return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Erreur lors de la mise à jour de la catégorie: " + e.getMessage()
-            );
+                    "Erreur lors de la mise à jour de la catégorie: " + e.getMessage());
             return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 
     // Supprimer une catégorie par ID
     @DeleteMapping("/{id}")
@@ -198,9 +192,8 @@ public ResponseEntity<?> createCategory(
         } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.NOT_FOUND,
-                    "Catégorie avec l'ID " + id + " non trouvée."
-            );
-            return new  ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+                    "Catégorie avec l'ID " + id + " non trouvée.");
+            return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
 
     }
@@ -225,20 +218,21 @@ public ResponseEntity<?> createCategory(
     }
 
     @GetMapping("/search")
-    public Page<Category> searchCategories(
+    public ResponseEntity<PagedModel<EntityModel<Category>>> searchCategories(
+            @RequestParam(required = false) String name,
             @RequestParam(required = false) Boolean isRoot,
-            @RequestParam(required = false) Boolean isParent,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime afterDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime beforeDate,
+            @RequestParam(required = false) Boolean isParent,
+            @RequestParam(required = false, defaultValue = "name") String sortBy,
+            @RequestParam(required = false, defaultValue = "true") boolean ascending,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) Boolean ascending
-    ) {
-        boolean asc = ascending != null && ascending;
-        return categoryService.searchCategories(isRoot, afterDate, beforeDate, isParent, sortBy, asc, page, size);
+            PagedResourcesAssembler<Category> assembler) {
+        Page<Category> categories = categoryService.searchCategories(
+                name, isRoot, afterDate, beforeDate, isParent, sortBy, ascending, page, size);
+        return ResponseEntity.ok(assembler.toModel(categories, categoryAssembler));
     }
-
 
     @GetMapping("/images/{fileName:.+}")
     public ResponseEntity<Resource> getImage(@PathVariable String fileName, HttpServletRequest request) {
@@ -253,7 +247,7 @@ public ResponseEntity<?> createCategory(
         }
 
         // Par défaut, utilisez application/octet-stream
-        if(contentType == null) {
+        if (contentType == null) {
             contentType = "application/octet-stream";
         }
         return ResponseEntity.ok()
