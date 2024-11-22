@@ -110,78 +110,72 @@ public class CategoryController {
 
     // Modifier une catégorie par ID
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(
-            @PathVariable Long id,
-            @RequestParam(value = "name", required = false) String name,
-            @RequestParam(value = "code", required = false) String code,
-            @RequestParam(value = "description", required = false) String description,
-            @RequestParam(value = "parentId", required = false) Long parentId,
-            @RequestParam(value = "image", required = false) MultipartFile image,
-            @RequestParam(value = "childrenIds", required = false) List<Long> childrenIds) {
-        try {
-            // Récupérer la catégorie existante
-            Category existingCategory = categoryService.getCategoryById(id);
-            if (existingCategory == null) {
-                ErrorResponse errorResponse = new ErrorResponse(
-                        HttpStatus.NOT_FOUND,
-                        "Catégorie avec l'ID " + id + " non trouvée.");
-                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-            }
-
-            // Créer un objet Category pour les mises à jour
-            Category categoryDetails = new Category();
-            categoryDetails.setId(id);
-
-            // Mettre à jour les champs si fournis
-            if (name != null)
-                categoryDetails.setName(name);
-            if (code != null)
-                categoryDetails.setCode(code);
-            if (description != null)
-                categoryDetails.setDescription(description);
-
-            // Gérer le parent
-            if (parentId != null) {
-                Category parentCategory = categoryService.getCategoryById(parentId);
-                if (parentCategory == null) {
-                    throw new IllegalArgumentException("Catégorie parent avec l'ID " + parentId + " non trouvée.");
-                }
-                categoryDetails.setParent(parentCategory);
-            } else {
-                categoryDetails.setParent(null); // Explicitement définir le parent à null si parentId n'est pas fourni
-            }
-
-            // Gérer l'image
-            if (image != null && !image.isEmpty()) {
-                String imageUrl = imageService.saveImage(image);
-                categoryDetails.setImageUrl(imageUrl);
-            }
-
-            // Mettre à jour la catégorie
-            Category updatedCategory = categoryService.updateCategory(id, categoryDetails);
-
-            // Gérer les enfants si une liste d'IDs est fournie
-            if (childrenIds != null) {
-                List<Category> childrenCategories = categoryService.getCategoriesByIds(childrenIds);
-                updatedCategory.getChildren().clear();
-                childrenCategories.forEach(updatedCategory::addChild);
-                updatedCategory = categoryService.updateCategory(id, updatedCategory);
-            }
-
-            return ResponseEntity.ok(updatedCategory);
-
-        } catch (IllegalArgumentException e) {
+public ResponseEntity<?> updateCategory(
+        @PathVariable Long id,
+        @RequestParam(value = "name", required = false) String name,
+        @RequestParam(value = "description", required = false) String description,
+        @RequestParam(value = "parentId", required = false) Long parentId,
+        @RequestParam(value = "image", required = false) MultipartFile image,
+        @RequestParam(value = "childrenIds", required = false) List<Long> childrenIds) {
+    try {
+        // Récupérer la catégorie existante
+        Category existingCategory = categoryService.getCategoryById(id);
+        if (existingCategory == null) {
             ErrorResponse errorResponse = new ErrorResponse(
-                    HttpStatus.BAD_REQUEST,
-                    "Erreur : " + e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            ErrorResponse errorResponse = new ErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Erreur lors de la mise à jour de la catégorie: " + e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+                    HttpStatus.NOT_FOUND,
+                    "Catégorie avec l'ID " + id + " non trouvée.");
+            return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
+
+        // Mettre à jour les champs si fournis
+        if (name != null)
+            existingCategory.setName(name);
+        if (description != null)
+            existingCategory.setDescription(description);
+
+        // Gérer le parent
+        if (parentId != null) {
+            Category parentCategory = categoryService.getCategoryById(parentId);
+            if (parentCategory == null) {
+                throw new IllegalArgumentException("Catégorie parent avec l'ID " + parentId + " non trouvée.");
+            }
+            existingCategory.setParent(parentCategory);
+        } else {
+            existingCategory.setParent(null); // Explicitement définir le parent à null si parentId n'est pas fourni
+        }
+
+        // Gérer l'image
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = imageService.saveImage(image);
+            existingCategory.setImageUrl(imageUrl);
+        }
+
+        // Mettre à jour la catégorie
+        Category updatedCategory = categoryService.updateCategory(id, existingCategory);
+
+        // Gérer les enfants si une liste d'IDs est fournie
+        if (childrenIds != null) {
+            List<Category> childrenCategories = categoryService.getCategoriesByIds(childrenIds);
+            updatedCategory.getChildren().clear();
+            childrenCategories.forEach(updatedCategory::addChild);
+            updatedCategory = categoryService.updateCategory(id, updatedCategory);
+        }
+
+        return ResponseEntity.ok(updatedCategory);
+
+    } catch (IllegalArgumentException e) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Erreur : " + e.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    } catch (Exception e) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Erreur lors de la mise à jour de la catégorie: " + e.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+}
+
 
     // Supprimer une catégorie par ID
     @DeleteMapping("/{id}")

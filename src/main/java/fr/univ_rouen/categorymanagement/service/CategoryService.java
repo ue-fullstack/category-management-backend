@@ -69,36 +69,21 @@ public class CategoryService {
 
     // Modifier une catégorie existante
     public Category updateCategory(Long id, Category categoryDetails) {
-        Category category = getCategoryById(id);
-        if (categoryDetails.getParent() != null && categoryDetails.getParent().getId().equals(id)) {
-            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
-        }
-        // Mise à jour des champs non-null
-        if (categoryDetails.getName() != null) {
-            category.setName(categoryDetails.getName());
-        }
-        if (categoryDetails.getCode() != null) {
-            category.setCode(categoryDetails.getCode());
-        }
-        if (categoryDetails.getDescription() != null) {
-            category.setDescription(categoryDetails.getDescription());
-        }
-        if (categoryDetails.getImageUrl() != null) {
-            category.setImageUrl(categoryDetails.getImageUrl());
-        }
+        Category existingCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Catégorie avec l'ID " + id + " non trouvée."));
 
-        // Gestion du parent
-        if (categoryDetails.getParent() != null) {
-            Category newParent = getCategoryById(categoryDetails.getParent().getId());
-            category.setParent(newParent);
-        } else {
-            category.setParent(null);
-        }
+        // Mettre à jour les champs si fournis
+        if (categoryDetails.getName() != null)
+            existingCategory.setName(categoryDetails.getName());
+        if (categoryDetails.getDescription() != null)
+            existingCategory.setDescription(categoryDetails.getDescription());
+        if (categoryDetails.getImageUrl() != null)
+            existingCategory.setImageUrl(categoryDetails.getImageUrl());
+        if (categoryDetails.getParent() != null)
+            existingCategory.setParent(categoryDetails.getParent());
 
-        category = categoryRepository.save(category);
-
-        // Récupérer la catégorie mise à jour depuis la base de données
-        return getCategoryById(category.getId());
+        // Utiliser merge pour attacher l'entité détachée
+        return categoryRepository.save(existingCategory);
     }
 
     // Supprimer une catégorie
