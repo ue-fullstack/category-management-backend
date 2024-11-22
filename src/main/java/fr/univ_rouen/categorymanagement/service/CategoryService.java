@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -87,9 +88,12 @@ public class CategoryService {
     }
 
     // Supprimer une catégorie
+    @Transactional
     public void deleteCategory(Long id) {
-        Category category = getCategoryById(id);
-        categoryRepository.delete(category);
+        // Réinitialiser les relations parent-enfant
+        categoryRepository.detachChildrenFromParent(id);
+        // Supprimer la catégorie parent
+        categoryRepository.deleteById(id);
     }
 
     // Recherche des catégories par nom avec pagination

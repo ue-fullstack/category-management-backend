@@ -137,7 +137,10 @@ public ResponseEntity<?> updateCategory(
         if (parentId != null) {
             Category parentCategory = categoryService.getCategoryById(parentId);
             if (parentCategory == null) {
-                throw new IllegalArgumentException("Catégorie parent avec l'ID " + parentId + " non trouvée.");
+                ErrorResponse errorResponse = new ErrorResponse(
+                        HttpStatus.NOT_FOUND,
+                        "Catégorie parent avec l'ID " + parentId + " non trouvée.");
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
             }
             existingCategory.setParent(parentCategory);
         } else {
@@ -182,7 +185,11 @@ public ResponseEntity<?> updateCategory(
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
         try {
             categoryService.deleteCategory(id);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.NO_CONTENT,
+                    "Catégorie avec l'ID " + id + " supprimée."
+            );
+            return new  ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.NOT_FOUND,
