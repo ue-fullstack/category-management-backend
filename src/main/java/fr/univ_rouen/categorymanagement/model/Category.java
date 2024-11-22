@@ -36,7 +36,7 @@ public class Category {
     @JsonBackReference // Empêche la sérialisation récursive du parent
     private Category parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.PERSIST)
     @JsonManagedReference // Sérialise seulement la partie "enfants"
     private List<Category> children = new ArrayList<>();
 
