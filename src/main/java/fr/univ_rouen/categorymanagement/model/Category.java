@@ -1,15 +1,14 @@
 package fr.univ_rouen.categorymanagement.model;
 
-import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "categories")
@@ -34,25 +33,24 @@ public class Category {
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
-    @JsonBackReference
+    @JsonBackReference // Empêche la sérialisation récursive du parent
     private Category parent;
 
-    @Column(name = "parent_id", insertable = false, updatable = false)
-    private Long parentId;
-
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.PERSIST)
+    @JsonManagedReference // Sérialise seulement la partie "enfants"
     private List<Category> children = new ArrayList<>();
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "is_selected")
-    private boolean selected;
+//    Si is_root retourne True alors la categorie n'est pas un enfant d'une autre catégorie
+    public boolean isRoot(){
+        return (parent == null);
+    }
 
-    @Getter
-    @Column(name = "is_root")
-    private boolean root;
+    public Long getParentId() {
+        return parent != null ? parent.getId() : null;
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -60,37 +58,43 @@ public class Category {
     }
 
     public void setParent(Category parent) {
-        if (this.parent != null) {
-            this.parent.getChildren().remove(this);
+        // Si le parent actuel est le même que le nouveau, rien à faire
+        if (Objects.equals(this.parent, parent)) {
+            return;
         }
+
+        // Si la catégorie a déjà un parent, le retirer de l'ancienne relation
+        if (this.parent != null) {
+            this.parent.removeChild(this);
+        }
+
+        // Définir le nouveau parent
         this.parent = parent;
-        this.parentId = parent != null ? parent.getId() : null;
-        if (parent != null) {
+
+        // Ajouter cette catégorie aux enfants du nouveau parent si non null
+        if (parent != null && !parent.getChildren().contains(this)) {
             parent.getChildren().add(this);
-            this.selected = true;
-            parent.setSelected(false);
-            this.root = false;
-        } else {
-            this.root = true;
         }
     }
 
     public void addChild(Category child) {
-        children.add(child);
-        child.setParent(this);
-        this.root = true;
-    }
+        // Vérifier que la catégorie ne s'ajoute pas elle-même en tant qu'enfant
+        if (Objects.equals(child.getId(), this.id)) {
+            throw new IllegalArgumentException("Une catégorie ne peut pas être enfant d'elle-même.");
+        }
 
-    public void removeChild(Category child) {
-        children.remove(child);
-        child.setParent(null);
-        if (children.isEmpty()) {
-            this.root = false;
+        // Ajouter l'enfant seulement s'il n'est pas déjà présent
+        if (!children.contains(child)) {
+            children.add(child);
+            child.setParent(this);
         }
     }
 
-    @JsonIgnore
-    public Long getParentId() {
-        return parent != null ? parent.getId() : null;
+    public void removeChild(Category child) {
+        if (children.contains(child)) {
+            children.remove(child);
+            child.setParent(null); // Supprime le lien parent pour l’enfant
+        }
     }
+
 }

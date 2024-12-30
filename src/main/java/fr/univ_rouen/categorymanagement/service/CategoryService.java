@@ -1,123 +1,171 @@
 package fr.univ_rouen.categorymanagement.service;
 
-import fr.univ_rouen.categorymanagement.dto.CategoryDTO;
-import fr.univ_rouen.categorymanagement.exceptions.CategoryNotFoundException;
 import fr.univ_rouen.categorymanagement.model.Category;
 import fr.univ_rouen.categorymanagement.repository.CategoryRepository;
+import fr.univ_rouen.categorymanagement.specification.CategorySpecifications;
 import fr.univ_rouen.categorymanagement.util.CategoryCodeGenerator;
-import fr.univ_rouen.categorymanagement.util.CategoryMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class CategoryService {
 
     @Autowired
-    private CategoryCodeGenerator codeGenerator;
+    private CategoryCodeGenerator categoryCodeGenerator;
 
     @Autowired
     private CategoryRepository categoryRepository;
 
-
-    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
-        Category category = new Category();
-        category.setName(categoryDTO.getName());
-        category.setCode(codeGenerator.generateCode());
-        category.setDescription(categoryDTO.getDescription());
-        category.setImageUrl(categoryDTO.getImageUrl());
-        category.setCreatedAt(LocalDateTime.now());
-        category.setRoot(categoryDTO.getParentId() == null);
-
-        if (categoryDTO.getParentId() != null) {
-            Category parent = categoryRepository.findById(categoryDTO.getParentId())
-                    .orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));
-            category.setParent(parent);
+    // Créer une nouvelle catégorie
+    public Category createCategory(Category category) {
+        // Vérifications existantes
+        if (category.getParent() != null && category.getParent().getId().equals(category.getId())) {
+            throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent");
+        }
+        if (category.getName() == null || category.getName().isEmpty()) {
+            throw new IllegalArgumentException("Une catégorie doit obligatoirement avoir un nom");
         }
 
-        Category savedCategory = categoryRepository.save(category);
-        return convertToDTO(savedCategory);
-    }
-
-    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
-
-        category.setName(categoryDTO.getName());
-        category.setDescription(categoryDTO.getDescription());
-        category.setImageUrl(categoryDTO.getImageUrl());
-
-        if (categoryDTO.getParentId() != null && !categoryDTO.getParentId().equals(category.getParent().getId())) {
-            Category newParent = categoryRepository.findById(categoryDTO.getParentId())
-                    .orElseThrow(() -> new CategoryNotFoundException("Parent category not found"));
-            category.setParent(newParent);
-            category.setRoot(false);
-        } else if (categoryDTO.getParentId() == null && !category.isRoot()) {
-            category.setParent(null);
-            category.setRoot(true);
+        // Générer un code unique
+        String code = categoryCodeGenerator.generateCode(category.getName());
+        category.setCode(code);
+        // Vérifier si une catégorie avec le même nom existe déjà
+        if (categoryRepository.existsByName(category.getName())) {
+            throw new IllegalArgumentException("Une catégorie avec ce nom existe déjà");
         }
 
-        Category updatedCategory = categoryRepository.save(category);
-        return convertToDTO(updatedCategory);
+        return categoryRepository.save(category);
     }
 
+    // Lister toutes les catégories avec pagination
+    public Page<Category> getAllCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findAll(pageable);
+    }
+
+    // Récupérer les catégories racines avec pagination
+    public Page<Category> getRootCategories(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findByParentIsNull(pageable);
+    }
+
+    // Récupérer une catégorie par ID
+    public Category getCategoryById(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
+    }
+
+    public List<Category> getCategoriesByIds(List<Long> ids) {
+        return categoryRepository.findAllById(ids);
+    }
+
+    // Modifier une catégorie existante
+    public Category updateCategory(Long id, Category categoryDetails) {
+        Category existingCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Catégorie avec l'ID " + id + " non trouvée."));
+
+        // Mettre à jour les champs si fournis
+        if (categoryDetails.getName() != null)
+            existingCategory.setName(categoryDetails.getName());
+        if (categoryDetails.getDescription() != null)
+            existingCategory.setDescription(categoryDetails.getDescription());
+        if (categoryDetails.getImageUrl() != null)
+            existingCategory.setImageUrl(categoryDetails.getImageUrl());
+        if (categoryDetails.getParent() != null)
+            existingCategory.setParent(categoryDetails.getParent());
+
+        // Utiliser merge pour attacher l'entité détachée
+        return categoryRepository.save(existingCategory);
+    }
+
+    // Supprimer une catégorie
+    @Transactional
     public void deleteCategory(Long id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
-        categoryRepository.delete(category);
+        // Réinitialiser les relations parent-enfant
+        categoryRepository.detachChildrenFromParent(id);
+        // Supprimer la catégorie parent
+        categoryRepository.deleteById(id);
     }
 
-    public Page<CategoryDTO> getAllCategories(Pageable pageable) {
-        return categoryRepository.findAll(pageable).map(this::convertToDTO);
+    // Recherche des catégories par nom avec pagination
+    public Page<Category> searchCategoriesByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return categoryRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
-    public CategoryDTO getCategoryById(Long id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
-        return convertToDTO(category);
-    }
+    public Page<Category> searchCategories(
+            String name,
+            Boolean isRoot,
+            LocalDateTime afterDate,
+            LocalDateTime beforeDate,
+            Boolean isParent,
+            String sortBy,
+            boolean ascending,
+            int page,
+            int size) {
+        Specification<Category> spec = Specification.where(null);
 
-    public Page<CategoryDTO> searchCategories(Boolean isRoot, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
-        Page<Category> categories;
+        // Recherche par nom
+        if (name != null && !name.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+        }
 
-        if (isRoot != null && startDate != null && endDate != null) {
-            categories = categoryRepository.findByRootAndCreatedAtBetween(isRoot, startDate, endDate, pageable);
-        } else if (isRoot != null) {
-            categories = categoryRepository.findByRoot(isRoot, pageable);
-        } else if (startDate != null && endDate != null) {
-            categories = categoryRepository.findByCreatedAtBetween(startDate, endDate, pageable);
+        // Pour les catégories root
+        if (isRoot != null && isRoot) {
+            spec = spec.and(CategorySpecifications.isRootCategory());
+        }
+
+        // Pour les catégories créées après la date
+        if (afterDate != null) {
+            spec = spec.and(CategorySpecifications.createdAfter(afterDate));
+        }
+
+        // Pour les catégories créées avant la date
+        if (beforeDate != null) {
+            spec = spec.and(CategorySpecifications.createdBefore(beforeDate));
+        }
+
+        // Pour les catégories parent ou non parent
+        if (isParent != null) {
+            spec = isParent ? spec.and(CategorySpecifications.isParentCategory())
+                    : spec.and(CategorySpecifications.isNotParentCategory());
+        }
+
+        // Gestion du tri
+        Sort sort;
+        if (sortBy != null) {
+            switch (sortBy) {
+                case "name":
+                    sort = ascending ? Sort.by("name").ascending() : Sort.by("name").descending();
+                    break;
+                case "createdAt":
+                    sort = ascending ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
+                    break;
+                case "childrenCount":
+                    // Le tri par childrenCount est géré différemment
+                    return ascending
+                            ? categoryRepository.findAllCategoriesSortedByChildrenCount(PageRequest.of(page, size))
+                            : categoryRepository.findAllCategoriesSortedByChildrenCountDesc(PageRequest.of(page, size));
+                default:
+                    sort = Sort.unsorted();
+            }
         } else {
-            categories = categoryRepository.findAll(pageable);
+            sort = Sort.unsorted();
         }
 
-        return categories.map(this::convertToDTO);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Effectuer la recherche avec la spécification et la pagination
+        return categoryRepository.findAll(spec, pageable);
     }
 
-    private CategoryDTO convertToDTO(Category category) {
-        CategoryDTO dto = new CategoryDTO();
-        dto.setId(category.getId());
-        dto.setName(category.getName());
-        dto.setCode(category.getCode());
-        dto.setDescription(category.getDescription());
-        dto.setImageUrl(category.getImageUrl());
-        dto.setCreatedAt(category.getCreatedAt());
-        dto.setRoot(category.isRoot());
-
-        if (category.getParent() != null) {
-            dto.setParentId(category.getParent().getId());
-        }
-
-        List<CategoryDTO> children = category.getChildren().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        dto.setChildren(children);
-
-        return dto;
-    }
 }
-
